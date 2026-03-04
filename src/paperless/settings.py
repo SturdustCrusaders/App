@@ -42,6 +42,8 @@ for path in [
 # Tesseract process to one thread.
 os.environ["OMP_THREAD_LIMIT"] = "1"
 
+##DISABLE FOLDER WATCHING###
+PAPERLESS_CONSUMER_ENABLE = False
 
 def __get_boolean(key: str, default: str = "NO") -> bool:
     """
@@ -321,7 +323,7 @@ INSTALLED_APPS = [
     "documents.apps.DocumentsConfig",
     "paperless_tesseract.apps.PaperlessTesseractConfig",
     "paperless_text.apps.PaperlessTextConfig",
-    "paperless_mail.apps.PaperlessMailConfig",
+    # "paperless_mail.apps.PaperlessMailConfig",
     "django.contrib.admin",
     "rest_framework",
     "rest_framework.authtoken",
