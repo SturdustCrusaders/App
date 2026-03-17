@@ -52,7 +52,11 @@ services:
       - media:/usr/src/paperless/media
       - ./export:/usr/src/paperless/export
       - ./consume:/usr/src/paperless/consume
+      - ../src/documents/models.py:/usr/src/paperless/src/documents/models.py
+      - ../src/documents/ai_extraction.py:/usr/src/paperless/src/documents/ai_extraction.py
+      - ../src/documents/word_storage.py:/usr/src/paperless/src/documents/word_storage.py
       - ../src/documents/migrations/migration_default_groups.py:/usr/src/paperless/src/documents/migrations/migration_default_groups.py
+      - ../src/documents/migrations/migration_add_ai_word_extraction.py:/usr/src/paperless/src/documents/migrations/migration_add_ai_word_extraction.py
     env_file: docker-compose.env
     environment:
       PAPERLESS_REDIS: redis://broker:6379

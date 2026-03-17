@@ -114,3 +114,5 @@ celerybeat-schedule*
 #ignore the env in the docker compose
 /paperless-ngx/.env
 /paperless-ngx/docker-compose.env
+
+.env
