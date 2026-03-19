@@ -29,6 +29,7 @@ from documents.models import DocumentType
 from documents.models import StoragePath
 from documents.models import Tag
 from documents.models import WorkflowTrigger
+from documents.word_storage import WordDataProcessor
 from documents.parsers import DocumentParser
 from documents.parsers import ParseError
 from documents.parsers import get_parser_class_for_mime_type
@@ -476,6 +477,20 @@ class ConsumerPlugin(
                     page_count=page_count,
                     mime_type=mime_type,
                 )
+
+                # Extract words using AI (Azure Vision or Surya)
+                try:
+                    processor = WordDataProcessor()
+                    file_path = self.unmodified_original if self.unmodified_original is not None else self.working_copy
+                    processor.extract_and_store(
+                        document,
+                        file_path,
+                        mime_type,
+                    )
+                    self.log.info(f"Successfully extracted words for document {document}")
+                except Exception as e:
+                    self.log.warning(f"Word extraction failed for document {document}: {e}")
+                    # Don't fail the entire consumption if extraction fails
 
                 # If we get here, it was successful. Proceed with post-consume
                 # hooks. If they fail, nothing will get changed.
