@@ -995,6 +995,107 @@ if settings.AUDIT_LOG_ENABLED:
     auditlog.register(CustomFieldInstance)
 
 
+class DocumentTypeTemplate(models.Model):
+    """
+    Defines a set of named field regions for a document type.
+    When a document is classified as this type, only words within
+    the defined regions will be kept.
+    """
+    document_type = models.OneToOneField(
+        DocumentType,
+        on_delete=models.CASCADE,
+        related_name="template",
+        verbose_name=_("document type"),
+    )
+
+    name = models.CharField(
+        _("name"),
+        max_length=128,
+        help_text=_("Human-readable name for this template"),
+    )
+
+    created = models.DateTimeField(_("created"), default=timezone.now)
+
+    class Meta:
+        verbose_name = _("document type template")
+        verbose_name_plural = _("document type templates")
+
+    def __str__(self):
+        return f"Template for {self.document_type.name}"
+
+
+class DocumentTypeTemplateField(models.Model):
+    """
+    A single named field within a DocumentTypeTemplate.
+    Regions is a JSON array defining where on which pages the field value is found.
+    Example: [{"page": 1, "x0": 150, "y0": 400, "x1": 500, "y1": 440}]
+    """
+    template = models.ForeignKey(
+        DocumentTypeTemplate,
+        on_delete=models.CASCADE,
+        related_name="fields",
+        verbose_name=_("template"),
+    )
+
+    name = models.CharField(
+        _("name"),
+        max_length=128,
+        help_text=_("Field name, e.g. 'client_name', 'date', 'total'"),
+    )
+
+    regions = models.JSONField(
+        _("regions"),
+        help_text=_(
+            "List of page regions for this field. "
+            "Format: [{'page': 1, 'x0': 150, 'y0': 400, 'x1': 500, 'y1': 440}]"
+        ),
+    )
+
+    class Meta:
+        verbose_name = _("document type template field")
+        verbose_name_plural = _("document type template fields")
+        unique_together = ("template", "name")
+
+    def __str__(self):
+        return f"{self.template} - {self.name}"
+
+
+class DocumentFieldValue(models.Model):
+    """
+    Stores the extracted text value for a specific template field on a document.
+    Words from all regions of the field are joined in reading order.
+    """
+    document = models.ForeignKey(
+        Document,
+        on_delete=models.CASCADE,
+        related_name="field_values",
+        verbose_name=_("document"),
+    )
+
+    template_field = models.ForeignKey(
+        DocumentTypeTemplateField,
+        on_delete=models.CASCADE,
+        related_name="values",
+        verbose_name=_("template field"),
+    )
+
+    value = models.TextField(
+        _("value"),
+        blank=True,
+        help_text=_("Extracted text from all regions of this field, joined in reading order"),
+    )
+
+    extracted_at = models.DateTimeField(_("extracted at"), auto_now_add=True)
+
+    class Meta:
+        verbose_name = _("document field value")
+        verbose_name_plural = _("document field values")
+        unique_together = ("document", "template_field")
+
+    def __str__(self):
+        return f"{self.document} - {self.template_field.name}: {self.value}"
+
+
 class WorkflowTrigger(models.Model):
     class WorkflowTriggerMatching(models.IntegerChoices):
         # No auto matching
