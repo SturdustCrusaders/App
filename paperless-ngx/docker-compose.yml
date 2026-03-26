@@ -60,10 +60,9 @@ services:
       - ../src/documents/template_processor.py:/usr/src/paperless/src/documents/template_processor.py
       - ../src/documents/apps.py:/usr/src/paperless/src/documents/apps.py
       - ../src/documents/consumer.py:/usr/src/paperless/src/documents/consumer.py
-      - ../src/documents/migrations/migration_default_groups.py:/usr/src/paperless/src/documents/migrations/migration_default_groups.py
-      - ../src/documents/migrations/migration_add_ai_word_extraction.py:/usr/src/paperless/src/documents/migrations/migration_add_ai_word_extraction.py
+      - ../src/documents/migrations/1076_add_ai_word_extraction.py:/usr/src/paperless/src/documents/migrations/1076_add_ai_word_extraction.py
       - ../src/documents/migrations/1077_documenttypetemplate_and_fields.py:/usr/src/paperless/src/documents/migrations/1077_documenttypetemplate_and_fields.py
-      - ../src/documents/migrations/1078_templatemanager_group.py:/usr/src/paperless/src/documents/migrations/1078_templatemanager_group.py
+      - ../src/documents/migrations/1078_default_groups.py:/usr/src/paperless/src/documents/migrations/1078_default_groups.py
     env_file: docker-compose.env
     environment:
       PAPERLESS_REDIS: redis://broker:6379

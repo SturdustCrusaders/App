@@ -8,7 +8,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('documents', 'migration_add_ai_word_extraction'),
+        ("documents", "1076_add_ai_word_extraction"),
     ]
 
     operations = [

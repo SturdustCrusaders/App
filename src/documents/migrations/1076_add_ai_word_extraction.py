@@ -8,7 +8,7 @@ import django.core.validators
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('documents', 'migration_default_groups'),
+        ("documents", "1075_workflowaction_order"),
     ]
 
     operations = [
