@@ -57,6 +57,9 @@ services:
       - ../src/documents/models.py:/usr/src/paperless/src/documents/models.py
       - ../src/documents/ai_extraction.py:/usr/src/paperless/src/documents/ai_extraction.py
       - ../src/documents/word_storage.py:/usr/src/paperless/src/documents/word_storage.py
+      - ../src/documents/template_processor.py:/usr/src/paperless/src/documents/template_processor.py
+      - ../src/documents/apps.py:/usr/src/paperless/src/documents/apps.py
+      - ../src/documents/consumer.py:/usr/src/paperless/src/documents/consumer.py
       - ../src/documents/migrations/migration_default_groups.py:/usr/src/paperless/src/documents/migrations/migration_default_groups.py
       - ../src/documents/migrations/migration_add_ai_word_extraction.py:/usr/src/paperless/src/documents/migrations/migration_add_ai_word_extraction.py
     env_file: docker-compose.env
