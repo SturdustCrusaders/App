@@ -24,24 +24,26 @@ def create_default_groups(apps, schema_editor):
         "view_uisettings",
         "add_document",
         "view_document",
-        "change_document",
     ]))
 
     template_manager, _ = Group.objects.get_or_create(name="TemplateManager")
     template_manager.permissions.set(Permission.objects.filter(codename__in=[
-        "view_uisettings",
-        "view_document",
-        "view_documenttype",
-        "view_documenttypetemplate",
-        "add_documenttypetemplate",
-        "change_documenttypetemplate",
-        "delete_documenttypetemplate",
-        "view_documenttypetemplatefield",
-        "add_documenttypetemplatefield",
-        "change_documenttypetemplatefield",
-        "delete_documenttypetemplatefield",
-        "view_documentfieldvalue",
-    ]))
+    "view_uisettings",
+    "view_document",
+    "view_documenttype",
+    "add_documenttype",
+    "change_documenttype",
+    "delete_documenttype",
+    "view_documenttypetemplate",
+    "add_documenttypetemplate",
+    "change_documenttypetemplate",
+    "delete_documenttypetemplate",
+    "view_documenttypetemplatefield",
+    "add_documenttypetemplatefield",
+    "change_documenttypetemplatefield",
+    "delete_documenttypetemplatefield",
+    "view_documentfieldvalue",
+]))
 
 
 def remove_default_groups(apps, schema_editor):

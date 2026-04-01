@@ -812,15 +812,24 @@ class PaperlessTaskFilterSet(FilterSet):
 
 
 class ObjectOwnedOrGrantedPermissionsFilter(ObjectPermissionsFilter):
-    """
-    A filter backend that limits results to those where the requesting user
-    has read object level permissions, owns the objects, or objects without
-    an owner (for backwards compat)
-    """
-
     def filter_queryset(self, request, queryset, view):
+        user = request.user
+
+        # Superuser sees everything
+        if user.is_superuser:
+            return queryset
+
+        # Check if user is in a group that should see ALL documents globally
+        # (Viewer, TemplateManager) vs only their own (Uploader)
+        global_viewer_groups = {"Viewer", "TemplateManager"}
+        user_groups = set(user.groups.values_list("name", flat=True))
+
+        if user_groups & global_viewer_groups:
+            return queryset
+
+        # Otherwise fall back to owner-based filtering (Uploader)
         objects_with_perms = super().filter_queryset(request, queryset, view)
-        objects_owned = queryset.filter(owner=request.user)
+        objects_owned = queryset.filter(owner=user)
         objects_unowned = queryset.filter(owner__isnull=True)
         return objects_with_perms | objects_owned | objects_unowned
 
