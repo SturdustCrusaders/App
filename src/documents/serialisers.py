@@ -1102,6 +1102,21 @@ class DocumentSerializer(
         required=False,
     )
 
+    field_values = SerializerMethodField()
+
+    def get_field_values(self, obj) -> dict | None:
+        from documents.models import DocumentFieldValue
+        values = DocumentFieldValue.objects.filter(
+            document=obj,
+        ).select_related("template_field")
+        if not values.exists():
+            return None
+        return {
+            fv.template_field.name: fv.value
+            for fv in values
+        }
+
+
     def get_page_count(self, obj) -> int | None:
         return obj.page_count
 
@@ -1292,6 +1307,7 @@ class DocumentSerializer(
             "remove_inbox_tags",
             "page_count",
             "mime_type",
+            "field_values",
         )
         list_serializer_class = OwnedObjectListSerializer
 

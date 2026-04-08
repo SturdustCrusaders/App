@@ -40,6 +40,13 @@ class PaperlessObjectPermissions(DjangoObjectPermissions):
     }
 
     def has_object_permission(self, request, view, obj):
+    # Users with global view permission can access any object
+        if request.method in ("GET", "HEAD", "OPTIONS"):
+            model_name = obj.__class__.__name__.lower()
+            app_label = obj.__class__._meta.app_label
+            if request.user.has_perm(f"{app_label}.view_{model_name}"):
+                return True
+
         if hasattr(obj, "owner") and obj.owner is not None:
             if request.user == obj.owner:
                 return True

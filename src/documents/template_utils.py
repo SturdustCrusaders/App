@@ -91,6 +91,14 @@ def create_document_type_with_template(
         if template_json and template_json.get("fields"):
             _create_template_for_document_type(doc_type, template_json)
 
+        if template_json and template_json.get("blank_document_id"):
+            from documents.models import Document as Doc
+            try:
+                blank_doc = Doc.objects.get(pk=template_json["blank_document_id"])
+                set_blank_document(doc_type, blank_doc)
+            except Doc.DoesNotExist:
+                raise ValueError(f"Document {template_json['blank_document_id']} not found")
+
         logger.info(
             f"Created DocumentType '{name}' "
             f"(algorithm={resolved_algorithm}, match='{resolved_match}')"
@@ -138,6 +146,15 @@ def update_document_type_template(
             pass
 
         template = _create_template_for_document_type(doc_type, template_json)
+
+        if template_json and template_json.get("blank_document_id"):
+            from documents.models import Document as Doc
+            try:
+                blank_doc = Doc.objects.get(pk=template_json["blank_document_id"])
+                set_blank_document(doc_type, blank_doc)
+            except Doc.DoesNotExist:
+                raise ValueError(f"Document {template_json['blank_document_id']} not found")
+
         logger.info(f"Updated template for DocumentType '{doc_type.name}'")
         return template
 
@@ -207,6 +224,7 @@ def get_template_json(doc_type: DocumentType) -> dict | None:
         "match": doc_type.match,
         "matching_algorithm": doc_type.matching_algorithm,
         "is_insensitive": doc_type.is_insensitive,
+        "blank_document_id": template.blank_document.id if template.blank_document else None,
         "fields": [
             {
                 "name": field.name,
@@ -215,3 +233,28 @@ def get_template_json(doc_type: DocumentType) -> dict | None:
             for field in template.fields.all()
         ],
     }
+
+def set_blank_document(
+    doc_type: DocumentType,
+    document,
+) -> None:
+    """
+    Link an existing paperless Document as the blank template for a DocumentType.
+    The FE uses the document preview endpoint to render it for bbox drawing.
+
+    Args:
+        doc_type: DocumentType instance
+        document: Document instance to use as the blank template
+    """
+    try:
+        template = doc_type.template
+    except DocumentTypeTemplate.DoesNotExist:
+        raise ValueError(
+            f"DocumentType '{doc_type.name}' has no template. "
+            f"Create a template first using create_document_type_with_template."
+        )
+
+    template.blank_document = document
+    template.save(update_fields=["blank_document"])
+
+    logger.info(f"Set blank document {document.id} for DocumentType '{doc_type.name}'")
