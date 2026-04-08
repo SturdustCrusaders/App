@@ -63,6 +63,8 @@ services:
       - ../src/documents/permissions.py:/usr/src/paperless/src/documents/permissions.py
       - ../src/documents/filters.py:/usr/src/paperless/src/documents/filters.py
       - ../src/documents/views.py:/usr/src/paperless/src/documents/views.py
+      - ../src/documents/template_utils.py:/usr/src/paperless/src/documents/template_utils.py
+      - ../src/documents/serialisers.py:/usr/src/paperless/src/documents/serialisers.py
       - ../src/documents/migrations/1076_add_ai_word_extraction.py:/usr/src/paperless/src/documents/migrations/1076_add_ai_word_extraction.py
       - ../src/documents/migrations/1077_documenttypetemplate_and_fields.py:/usr/src/paperless/src/documents/migrations/1077_documenttypetemplate_and_fields.py
       - ../src/documents/migrations/1078_default_groups.py:/usr/src/paperless/src/documents/migrations/1078_default_groups.py

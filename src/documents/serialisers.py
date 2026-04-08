@@ -6,6 +6,7 @@ import re
 from datetime import datetime
 from decimal import Decimal
 from typing import TYPE_CHECKING
+from typing import Any
 from typing import Literal
 
 import magic
@@ -73,6 +74,8 @@ from documents.models import WorkflowTrigger
 from documents.parsers import is_mime_type_supported
 from documents.permissions import get_document_count_filter_for_user
 from documents.permissions import get_groups_with_only_permission
+from documents.permissions import get_objects_for_user_owner_aware
+from documents.permissions import has_perms_owner_aware
 from documents.permissions import set_permissions_for_object
 from documents.regex import validate_regex_pattern
 from documents.templating.filepath import validate_filepath_template_and_render
@@ -486,6 +489,8 @@ class CorrespondentSerializer(MatchingModelSerializer, OwnedObjectSerializer):
 
 
 class DocumentTypeSerializer(MatchingModelSerializer, OwnedObjectSerializer):
+    template_json = serializers.JSONField(required=False, allow_null=True, write_only=False)
+
     class Meta:
         model = DocumentType
         fields = (
@@ -500,7 +505,34 @@ class DocumentTypeSerializer(MatchingModelSerializer, OwnedObjectSerializer):
             "permissions",
             "user_can_change",
             "set_permissions",
+            "template_json",
         )
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        from documents.template_utils import get_template_json
+        data["template_json"] = get_template_json(instance)
+        return data
+
+    def create(self, validated_data):
+        template_json = validated_data.pop("template_json", None)
+        from documents.template_utils import create_document_type_with_template
+        return create_document_type_with_template(
+            name=validated_data["name"],
+            template_json=template_json,
+            matching_algorithm=validated_data.get("matching_algorithm", 0),
+            match=validated_data.get("match", ""),
+            is_insensitive=validated_data.get("is_insensitive", True),
+            owner=validated_data.get("owner"),
+        )
+
+    def update(self, instance, validated_data):
+        template_json = validated_data.pop("template_json", None)
+        instance = super().update(instance, validated_data)
+        if template_json is not None:
+            from documents.template_utils import update_document_type_template
+            update_document_type_template(instance, template_json)
+        return instance
 
 
 class DeprecatedColors:
@@ -713,6 +745,9 @@ class StoragePathField(serializers.PrimaryKeyRelatedField):
 
 class CustomFieldSerializer(serializers.ModelSerializer):
     def __init__(self, *args, **kwargs):
+        # Ignore args passed by permissions mixin
+        kwargs.pop("user", None)
+        kwargs.pop("full_perms", None)
         context = kwargs.get("context")
         self.api_version = int(
             context.get("request").version
@@ -2174,6 +2209,17 @@ class ShareLinkSerializer(OwnedObjectSerializer):
         validated_data["slug"] = get_random_string(50)
         return super().create(validated_data)
 
+    def validate_document(self, document):
+        if self.user is not None and has_perms_owner_aware(
+            self.user,
+            "view_document",
+            document,
+        ):
+            return document
+        raise PermissionDenied(
+            _("Insufficient permissions."),
+        )
+
 
 class BulkEditObjectsSerializer(SerializerWithPerms, SetPermissionsMixin):
     objects = serializers.ListField(
@@ -2750,8 +2796,22 @@ class StoragePathTestSerializer(SerializerWithPerms):
     )
 
     document = serializers.PrimaryKeyRelatedField(
-        queryset=Document.objects.all(),
+        queryset=Document.objects.none(),
         required=True,
         label="Document",
         write_only=True,
     )
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        request = self.context.get("request")
+        user = getattr(request, "user", None) if request else None
+        if user is not None and user.is_authenticated:
+            document_field = self.fields.get("document")
+            if not isinstance(document_field, serializers.PrimaryKeyRelatedField):
+                return
+            document_field.queryset = get_objects_for_user_owner_aware(
+                user,
+                "documents.view_document",
+                Document,
+            )
