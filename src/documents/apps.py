@@ -18,6 +18,7 @@ class DocumentsConfig(AppConfig):
         from documents.signals.handlers import set_document_type
         from documents.signals.handlers import set_storage_path
         from documents.signals.handlers import set_tags
+        from documents.template_processor import process_document_template
 
         document_consumption_finished.connect(add_inbox_tags)
         document_consumption_finished.connect(set_correspondent)
@@ -26,6 +27,7 @@ class DocumentsConfig(AppConfig):
         document_consumption_finished.connect(set_storage_path)
         document_consumption_finished.connect(add_to_index)
         document_consumption_finished.connect(run_workflows_added)
+        document_consumption_finished.connect(process_document_template)
         document_updated.connect(run_workflows_updated)
 
         import documents.schema  # noqa: F401

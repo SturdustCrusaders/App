@@ -313,6 +313,24 @@ class Document(SoftDeleteModel, ModelWithOwner):
         ),
     )
 
+    word_data_extracted = models.BooleanField(
+        _("word data extracted"),
+        default=False,
+        db_index=True,
+        help_text=_("Whether AI has extracted word positions and confidence scores for this document."),
+    )
+
+    ai_extraction_method = models.CharField(
+        _("AI extraction method"),
+        max_length=32,
+        choices=[
+            ("azure_vision", "Azure Computer Vision"),
+            ("surya", "Surya OCR"),
+        ],
+        blank=True,
+        help_text=_("Which AI service was used to extract words."),
+    )
+
     class Meta:
         ordering = ("-created",)
         verbose_name = _("document")
@@ -977,6 +995,107 @@ if settings.AUDIT_LOG_ENABLED:
     auditlog.register(CustomFieldInstance)
 
 
+class DocumentTypeTemplate(models.Model):
+    """
+    Defines a set of named field regions for a document type.
+    When a document is classified as this type, only words within
+    the defined regions will be kept.
+    """
+    document_type = models.OneToOneField(
+        DocumentType,
+        on_delete=models.CASCADE,
+        related_name="template",
+        verbose_name=_("document type"),
+    )
+
+    name = models.CharField(
+        _("name"),
+        max_length=128,
+        help_text=_("Human-readable name for this template"),
+    )
+
+    created = models.DateTimeField(_("created"), default=timezone.now)
+
+    class Meta:
+        verbose_name = _("document type template")
+        verbose_name_plural = _("document type templates")
+
+    def __str__(self):
+        return f"Template for {self.document_type.name}"
+
+
+class DocumentTypeTemplateField(models.Model):
+    """
+    A single named field within a DocumentTypeTemplate.
+    Regions is a JSON array defining where on which pages the field value is found.
+    Example: [{"page": 1, "x0": 150, "y0": 400, "x1": 500, "y1": 440}]
+    """
+    template = models.ForeignKey(
+        DocumentTypeTemplate,
+        on_delete=models.CASCADE,
+        related_name="fields",
+        verbose_name=_("template"),
+    )
+
+    name = models.CharField(
+        _("name"),
+        max_length=128,
+        help_text=_("Field name, e.g. 'client_name', 'date', 'total'"),
+    )
+
+    regions = models.JSONField(
+        _("regions"),
+        help_text=_(
+            "List of page regions for this field. "
+            "Format: [{'page': 1, 'x0': 150, 'y0': 400, 'x1': 500, 'y1': 440}]"
+        ),
+    )
+
+    class Meta:
+        verbose_name = _("document type template field")
+        verbose_name_plural = _("document type template fields")
+        unique_together = ("template", "name")
+
+    def __str__(self):
+        return f"{self.template} - {self.name}"
+
+
+class DocumentFieldValue(models.Model):
+    """
+    Stores the extracted text value for a specific template field on a document.
+    Words from all regions of the field are joined in reading order.
+    """
+    document = models.ForeignKey(
+        Document,
+        on_delete=models.CASCADE,
+        related_name="field_values",
+        verbose_name=_("document"),
+    )
+
+    template_field = models.ForeignKey(
+        DocumentTypeTemplateField,
+        on_delete=models.CASCADE,
+        related_name="values",
+        verbose_name=_("template field"),
+    )
+
+    value = models.TextField(
+        _("value"),
+        blank=True,
+        help_text=_("Extracted text from all regions of this field, joined in reading order"),
+    )
+
+    extracted_at = models.DateTimeField(_("extracted at"), auto_now_add=True)
+
+    class Meta:
+        verbose_name = _("document field value")
+        verbose_name_plural = _("document field values")
+        unique_together = ("document", "template_field")
+
+    def __str__(self):
+        return f"{self.document} - {self.template_field.name}: {self.value}"
+
+
 class WorkflowTrigger(models.Model):
     class WorkflowTriggerMatching(models.IntegerChoices):
         # No auto matching
@@ -1583,3 +1702,130 @@ class WorkflowRun(SoftDeleteModel):
 
     def __str__(self):
         return f"WorkflowRun of {self.workflow} at {self.run_at} on {self.document}"
+
+
+class DocumentPage(models.Model):
+    """
+    Stores page-level metadata for AI-extracted word data.
+    Each document has one or more pages, each with extracted words and bounding boxes.
+    """
+
+    document = models.ForeignKey(
+        Document,
+        on_delete=models.CASCADE,
+        related_name="pages",
+        verbose_name=_("document"),
+    )
+
+    page_number = models.PositiveIntegerField(
+        _("page number"),
+        validators=[MinValueValidator(1)],
+        help_text=_("1-indexed page number within the document"),
+    )
+
+    page_width = models.FloatField(
+        _("page width"),
+        blank=True,
+        null=True,
+        help_text=_("Page width in points (PDF) or pixels"),
+    )
+
+    page_height = models.FloatField(
+        _("page height"),
+        blank=True,
+        null=True,
+        help_text=_("Page height in points (PDF) or pixels"),
+    )
+
+    extracted_at = models.DateTimeField(
+        _("extracted at"),
+        auto_now_add=True,
+    )
+
+    class Meta:
+        verbose_name = _("document page")
+        verbose_name_plural = _("document pages")
+        unique_together = ("document", "page_number")
+        ordering = ("document", "page_number")
+
+    def __str__(self):
+        return f"{self.document} - Page {self.page_number}"
+
+
+class DocumentWord(models.Model):
+    """
+    Stores individual extracted words with their bounding boxes and confidence scores.
+    This replaces storing the full document blob.
+    """
+
+    page = models.ForeignKey(
+        DocumentPage,
+        on_delete=models.CASCADE,
+        related_name="words",
+        verbose_name=_("page"),
+    )
+
+    text = models.CharField(
+        _("text"),
+        max_length=1024,
+        db_index=True,
+        help_text=_("The extracted word text"),
+    )
+
+    # Bounding box coordinates (typically normalized to 0-1 or in pixels)
+    bbox_x0 = models.FloatField(
+        _("bbox x0"),
+        help_text=_("Bounding box left coordinate"),
+    )
+
+    bbox_y0 = models.FloatField(
+        _("bbox y0"),
+        help_text=_("Bounding box top coordinate"),
+    )
+
+    bbox_x1 = models.FloatField(
+        _("bbox x1"),
+        help_text=_("Bounding box right coordinate"),
+    )
+
+    bbox_y1 = models.FloatField(
+        _("bbox y1"),
+        help_text=_("Bounding box bottom coordinate"),
+    )
+
+    confidence = models.FloatField(
+        _("confidence"),
+        validators=[MinValueValidator(0.0), MaxValueValidator(1.0)],
+        help_text=_("Confidence score from the AI model (0-1)"),
+    )
+
+    # Optional: language and additional metadata
+    language = models.CharField(
+        _("language"),
+        max_length=10,
+        blank=True,
+        help_text=_("Detected language code (e.g., 'en', 'de')"),
+    )
+
+    word_index = models.PositiveIntegerField(
+        _("word index"),
+        help_text=_("Sequential index of word on the page (for reconstruction order)"),
+    )
+
+    extracted_at = models.DateTimeField(
+        _("extracted at"),
+        auto_now_add=True,
+    )
+
+    class Meta:
+        verbose_name = _("document word")
+        verbose_name_plural = _("document words")
+        ordering = ("page", "word_index")
+        indexes = [
+            models.Index(fields=["page", "word_index"]),
+            models.Index(fields=["text"]),  # For full-text search
+            models.Index(fields=["confidence"]),  # For filtering by confidence
+        ]
+
+    def __str__(self):
+        return f"{self.page} - '{self.text}' ({self.confidence:.2%})"

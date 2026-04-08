@@ -1403,3 +1403,12 @@ WEBHOOKS_ALLOW_INTERNAL_REQUESTS = __get_boolean(
     "PAPERLESS_WEBHOOKS_ALLOW_INTERNAL_REQUESTS",
     "true",
 )
+
+###############################################################################
+# AI Word Extraction
+###############################################################################
+AI_EXTRACTION_METHOD = os.getenv("AI_EXTRACTION_METHOD", "surya")
+
+# Azure Computer Vision API configuration
+AZURE_VISION_ENDPOINT = os.getenv("AZURE_VISION_ENDPOINT", "")
+AZURE_VISION_KEY = os.getenv("AZURE_VISION_KEY", "")
