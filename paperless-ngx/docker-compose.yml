@@ -70,8 +70,8 @@ services:
       - ../src/documents/migrations/1077_documenttypetemplate_and_fields.py:/usr/src/paperless/src/documents/migrations/1077_documenttypetemplate_and_fields.py
       - ../src/documents/migrations/1078_default_groups.py:/usr/src/paperless/src/documents/migrations/1078_default_groups.py
       - ../src/documents/migrations/1079_documenttypetemplate_blank_document.py:/usr/src/paperless/src/documents/migrations/1079_documenttypetemplate_blank_document.py
-      - ../src-ui:/usr/src/paperless/src-ui
 
+      - ../src-ui/dist/paperless-ui/en-US:/usr/src/paperless/static/frontend/en-US
     env_file: docker-compose.env
     environment:
       PAPERLESS_REDIS: redis://broker:6379
