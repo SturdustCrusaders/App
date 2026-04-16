@@ -54,6 +54,7 @@ export class DocumentTypeEditDialogComponent extends EditDialogComponent<Documen
       match: new FormControl(''),
       is_insensitive: new FormControl(true),
       permissions_form: new FormControl(null),
+      template_json: new FormControl(''),  // <-- NOU
     })
   }
 }
