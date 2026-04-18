@@ -54,7 +54,51 @@ export class DocumentTypeEditDialogComponent extends EditDialogComponent<Documen
       match: new FormControl(''),
       is_insensitive: new FormControl(true),
       permissions_form: new FormControl(null),
-      template_json: new FormControl(''),  // <-- NOU
+      template_json: new FormControl(''),
+    })
+  }
+
+  override save() {
+    this.error = null
+    const formValues = this.getFormValues()
+    // Validare și parsare template_json
+    if (formValues.template_json) {
+      try {
+        formValues.template_json = JSON.parse(formValues.template_json)
+      } catch (e) {
+        this.error = { template_json: 'JSON invalid în Template JSON (Bounding Boxes)' }
+        return
+      }
+    }
+    const permissionsObject = this.objectForm.get('permissions_form')?.value
+    if (permissionsObject) {
+      formValues.owner = permissionsObject.owner
+      formValues.set_permissions = permissionsObject.set_permissions
+      delete formValues.permissions_form
+    }
+    var newObject = Object.assign(Object.assign({}, this.object), formValues)
+    var serverResponse
+    switch (this.dialogMode) {
+      case (window as any).EditDialogMode?.CREATE || 0:
+        serverResponse = this.service.create(newObject)
+        break
+      case (window as any).EditDialogMode?.EDIT || 1:
+        serverResponse = this.service.update(newObject)
+        break
+      default:
+        return
+    }
+    this.networkActive = true
+    serverResponse.subscribe({
+      next: (result: any) => {
+        this.activeModal.close()
+        this.succeeded.emit(result)
+      },
+      error: (error: any) => {
+        this.error = error.error
+        this.networkActive = false
+        this.failed.next(error)
+      },
     })
   }
 }
