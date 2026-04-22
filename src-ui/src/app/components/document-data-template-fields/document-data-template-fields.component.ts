@@ -4,6 +4,7 @@ export interface TemplateField {
   name: string;
   template_name: string;
   field: string;
+  value: string; 
   regions: Array<{
     x0: number;
     x1: number;

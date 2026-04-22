@@ -1,13 +1,22 @@
 <div class="template-fields-container">
   <div *ngFor="let field of templateFields" class="field-item">
+
     <div class="field-header">
-      <strong>{{ field.field }}</strong>
-      <span class="template-badge">{{ field.template_name }}</span>
+      <strong>{{ field.field }}:</strong>
+      <span class="field-value">
+        {{ field.value?.length ? field.value : '-' }}
+      </span>
+
+      <span class="template-badge">
+        {{ field.template_name }}
+      </span>
     </div>
+
     <div class="field-regions">
       <div *ngFor="let region of field.regions" class="region-item">
         {{ getRegionDisplay(region) }}
       </div>
     </div>
+
   </div>
 </div>

@@ -110,15 +110,18 @@ import { DocumentHistoryComponent } from '../document-history/document-history.c
 import { DocumentNotesComponent } from '../document-notes/document-notes.component'
 import { ComponentWithPermissions } from '../with-permissions/with-permissions.component'
 import { MetadataCollapseComponent } from './metadata-collapse/metadata-collapse.component'
+import { DocumentTemplateService } from 'src/app/services/document-template.service'
+import { DocumentTemplateFieldsComponent, TemplateField } from '../document-data-template-fields/document-data-template-fields.component'
 
 enum DocumentDetailNavIDs {
   Details = 1,
   Content = 2,
   Metadata = 3,
-  Preview = 4,
-  Notes = 5,
-  Permissions = 6,
-  History = 7,
+  TemplateFields =4,
+  Preview = 5,
+  Notes = 6,
+  // Permissions = 6,
+  // History = 7,
 }
 
 enum ContentRenderType {
@@ -151,6 +154,7 @@ export enum ZoomSetting {
     CustomFieldsDropdownComponent,
     DocumentNotesComponent,
     DocumentHistoryComponent,
+    DocumentTemplateFieldsComponent,
     CheckComponent,
     DateComponent,
     DocumentLinkComponent,
@@ -201,6 +205,7 @@ export class DocumentDetailComponent
   private componentRouterService = inject(ComponentRouterService)
   private deviceDetectorService = inject(DeviceDetectorService)
   private savedViewService = inject(SavedViewService)
+  private templateService = inject(DocumentTemplateService)
 
   @ViewChild('inputTitle')
   titleInput: TextComponent
@@ -282,6 +287,7 @@ export class DocumentDetailComponent
     }
   }
 
+  templateFields: TemplateField[] = [];
   DocumentDetailNavIDs = DocumentDetailNavIDs
   activeNavID: number
 
@@ -467,6 +473,7 @@ export class DocumentDetailComponent
               .subscribe()
           }
           this.updateComponent(useDoc)
+          this.loadTemplateFields(useDoc.document_type);
           this.titleSubject
             .pipe(
               debounceTime(1000),
@@ -1198,14 +1205,40 @@ export class DocumentDetailComponent
       Object.values(ZoomSetting)[Math.max(2, currentIndex - 1)]
   }
 
+  loadTemplateFields(documentTypeId: number): void {
+  if (
+    this.permissionsService.currentUserCan(
+      PermissionAction.View,
+      PermissionType.DocumentType
+    ) && documentTypeId
+  ) {
+    this.templateService
+      .getTemplateFieldsByDocumentType(documentTypeId, this.documentId)
+      .pipe(first(), takeUntil(this.unsubscribeNotifier))
+      .subscribe({
+        next: (fields) => {
+          this.templateFields = [...fields];
+          console.log('Loaded template fields:', this.templateFields); 
+        },
+        error: (err) => console.error(err)
+      });
+  }
+}
+
+
+get showTemplateFields(): boolean {
+  return this.templateFields && this.templateFields.length > 0;
+}
+
   get showPermissions(): boolean {
     return (
       this.permissionsService.currentUserCan(
         PermissionAction.View,
         PermissionType.User
       ) && this.userIsOwner
-    )
+    );
   }
+
 
   get notesEnabled(): boolean {
     return (

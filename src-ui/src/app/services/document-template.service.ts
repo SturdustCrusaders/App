@@ -9,9 +9,9 @@ import { TemplateField } from '../components/document-data-template-fields/docum
 export class DocumentTemplateService {
   constructor(private http: HttpClient) {}
 
-  getTemplateFieldsByDocumentType(documentTypeId: number): Observable<TemplateField[]> {
+  getTemplateFieldsByDocumentType(documentTypeId: number, documentId: number): Observable<TemplateField[]> {
     return this.http.get<TemplateField[]>(
-      `/api/document-types/${documentTypeId}/template-fields/`
+      `/api/document-types/${documentTypeId}/template-fields/?document_id=${documentId}`
     );
   }
 }

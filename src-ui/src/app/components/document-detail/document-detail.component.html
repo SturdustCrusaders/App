@@ -338,6 +338,17 @@
           </li>
         }
 
+        <li [ngbNavItem]="DocumentDetailNavIDs.TemplateFields">
+          <a ngbNavLink i18n>Date</a>
+          <ng-template ngbNavContent>
+          <div class="mb-3">
+              <pngx-document-template-fields
+                [templateFields]="templateFields">
+              </pngx-document-template-fields>
+          </div>
+        </ng-template>
+      </li>
+
         @if (showPermissions) {
           <li [ngbNavItem]="DocumentDetailNavIDs.Permissions">
             <a ngbNavLink i18n>Permissions</a>
