@@ -17,13 +17,86 @@
         <pngx-input-check i18n-title title="Case insensitive" formControlName="is_insensitive"></pngx-input-check>
       }
 
-      <!-- NOU: camp pentru bounding boxes JSON -->
-      <pngx-input-text
-        i18n-title
-        title="Template JSON (Bounding Boxes)"
-        formControlName="template_json"
-        [error]="error?.template_json">
-      </pngx-input-text>
+      <div class="bbox-template-editor">
+        <label class="form-label" i18n>Template JSON (Bounding Boxes)</label>
+        <textarea
+          class="form-control"
+          rows="8"
+          formControlName="template_json"
+          placeholder='{"fields":[{"name":"invoice_number","regions":[{"page":1,"x0":0.1,"y0":0.2,"x1":0.4,"y1":0.25}]}]}'
+        ></textarea>
+        @if (error?.template_json) {
+          <div class="invalid-feedback d-block">{{ error?.template_json }}</div>
+        }
+
+        <div class="bbox-builder mt-3">
+          <label class="form-label" i18n>Build visually from image</label>
+          <input
+            type="file"
+            class="form-control"
+            accept="image/*"
+            (change)="onTemplateImageSelected($event)"
+          />
+
+          @if (templateImageSrc) {
+            <p class="small text-muted mt-2 mb-2" i18n>
+              Drag on image to create a bounding box. Coordinates are stored normalized (0..1) on page 1.
+            </p>
+
+            <div
+              class="bbox-stage"
+              #bboxStage
+              (mousedown)="onStageMouseDown($event)"
+              (mousemove)="onStageMouseMove($event)"
+              (mouseup)="onStageMouseUp()"
+              (mouseleave)="cancelDrawing()"
+            >
+              <img [src]="templateImageSrc" alt="Template preview" draggable="false" />
+
+              @for (box of drawBoxes; track $index) {
+                <div class="bbox-box" [style]="getBoxStyle(box)">
+                  <span>{{ box.name }}</span>
+                </div>
+              }
+
+              @if (isDrawing) {
+                <div class="bbox-box drawing" [style]="getCurrentDrawStyle()"></div>
+              }
+            </div>
+
+            <div class="d-flex gap-2 mt-2">
+              <button type="button" class="btn btn-sm btn-outline-secondary" (click)="clearBoxes()" i18n>
+                Clear boxes
+              </button>
+            </div>
+
+            @if (drawBoxes.length > 0) {
+              <div class="bbox-fields mt-3">
+                @for (box of drawBoxes; track $index) {
+                  <div class="bbox-field-row">
+                    <input
+                      type="text"
+                      class="form-control form-control-sm"
+                      [(ngModel)]="box.name"
+                      [ngModelOptions]="{ standalone: true }"
+                      (ngModelChange)="onFieldNameChanged()"
+                      placeholder="field_name"
+                    />
+                    <button
+                      type="button"
+                      class="btn btn-sm btn-outline-danger"
+                      (click)="removeBox($index)"
+                      i18n
+                    >
+                      Remove
+                    </button>
+                  </div>
+                }
+              </div>
+            }
+          }
+        </div>
+      </div>
 
     </div>
 
