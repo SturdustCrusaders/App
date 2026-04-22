@@ -3215,3 +3215,20 @@ def serve_logo(request, filename=None):
         filename=app_logo.name,
         as_attachment=True,
     )
+
+from documents.serialisers import TemplateFieldSerializer
+from documents.models import DocumentTypeTemplateField
+
+class DocumentTypeTemplateFieldsView(ListModelMixin, GenericAPIView):
+    permission_classes = (IsAuthenticated,)
+    serializer_class = TemplateFieldSerializer
+
+    def get_queryset(self):
+        document_type_id = self.kwargs.get("document_type_id")
+
+        return DocumentTypeTemplateField.objects.filter(
+            template__document_type_id=document_type_id
+        ).select_related("template")
+
+    def get(self, request, *args, **kwargs):
+        return self.list(request, *args, **kwargs)

@@ -2831,3 +2831,9 @@ class StoragePathTestSerializer(SerializerWithPerms):
                 "documents.view_document",
                 Document,
             )
+
+class TemplateFieldSerializer(serializers.Serializer):
+    name = serializers.CharField(source="template.name")
+    template_name = serializers.CharField(source="template.name")
+    field = serializers.CharField(source="name")
+    regions = serializers.JSONField()
