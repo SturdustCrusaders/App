@@ -1014,6 +1014,16 @@ class DocumentTypeTemplate(models.Model):
         help_text=_("Human-readable name for this template"),
     )
 
+    blank_document = models.ForeignKey(
+        Document,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="used_as_blank_template",
+        verbose_name=_("blank document"),
+        help_text=_("The blank/empty form document used as the template base"),
+    )
+
     created = models.DateTimeField(_("created"), default=timezone.now)
 
     class Meta:

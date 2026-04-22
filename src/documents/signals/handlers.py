@@ -962,3 +962,32 @@ def close_connection_pool_on_worker_init(**kwargs):
     for conn in connections.all(initialized_only=True):
         if conn.alias == "default" and hasattr(conn, "pool") and conn.pool:
             conn.close_pool()
+
+def flag_unclassified_document(sender, document: Document, logging_group=None, **kwargs):
+    """
+    If a document has no document type after classification,
+    assign it the special MANUAL document type so workers can review it.
+    """
+    if document.document_type is not None:
+        return
+
+    from documents.models import DocumentType
+
+    manual_type, created = DocumentType.objects.get_or_create(
+        name="MANUAL",
+        defaults={
+            "match": "",
+            "matching_algorithm": 0,
+            "is_insensitive": True,
+        },
+    )
+
+    if created:
+        logger.info("Created MANUAL document type for unclassified documents")
+
+    document.document_type = manual_type
+    document.save(update_fields=("document_type",))
+    logger.info(
+        f"Document {document} has no type — assigned MANUAL for review",
+        extra={"group": logging_group},
+    )

@@ -16,6 +16,15 @@
         <pngx-input-text i18n-title title="Matching pattern" formControlName="match" [error]="error?.match"></pngx-input-text>
         <pngx-input-check i18n-title title="Case insensitive" formControlName="is_insensitive"></pngx-input-check>
       }
+
+      <!-- NOU: camp pentru bounding boxes JSON -->
+      <pngx-input-text
+        i18n-title
+        title="Template JSON (Bounding Boxes)"
+        formControlName="template_json"
+        [error]="error?.template_json">
+      </pngx-input-text>
+
     </div>
 
     <div *pngxIfOwner="object">
