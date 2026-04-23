@@ -72,6 +72,7 @@ import {
   FILTER_OWNER_ISNULL,
   FILTER_SHARED_BY_USER,
   FILTER_STORAGE_PATH,
+  FILTER_TEMPLATE_FIELDS,
   FILTER_TITLE,
   FILTER_TITLE_CONTENT,
   NEGATIVE_NULL_FILTER_VALUE,
@@ -127,6 +128,7 @@ const TEXT_FILTER_TARGET_FULLTEXT_QUERY = 'fulltext-query'
 const TEXT_FILTER_TARGET_FULLTEXT_MORELIKE = 'fulltext-morelike'
 const TEXT_FILTER_TARGET_CUSTOM_FIELDS = 'custom-fields'
 const TEXT_FILTER_TARGET_MIME_TYPE = 'mime-type'
+const TEXT_FILTER_TARGET_TEMPLATE_FIELDS = 'template-fields'
 
 const TEXT_FILTER_MODIFIER_EQUALS = 'equals'
 const TEXT_FILTER_MODIFIER_NULL = 'is null'
@@ -203,6 +205,10 @@ const DEFAULT_TEXT_FILTER_TARGET_OPTIONS = [
     name: $localize`Custom fields`,
   },
   { id: TEXT_FILTER_TARGET_MIME_TYPE, name: $localize`File type` },
+  {
+    id: TEXT_FILTER_TARGET_TEMPLATE_FIELDS,
+    name: $localize`Date Extrase`,
+  },
   {
     id: TEXT_FILTER_TARGET_FULLTEXT_QUERY,
     name: $localize`Advanced search`,
@@ -769,6 +775,17 @@ export class FilterEditorComponent
         value: this._textFilter.trim(),
       })
     }
+
+    if ( this._textFilter && this.textFilterTarget == TEXT_FILTER_TARGET_TEMPLATE_FIELDS) {
+      console.log('TARGET:', this.textFilterTarget)
+      console.log('TEXT:', this._textFilter)
+      
+      filterRules.push({
+        rule_type: FILTER_TEMPLATE_FIELDS,
+        value: this._textFilter.trim(),
+      });
+    }
+
     if (this._textFilter && this.textFilterTarget == TEXT_FILTER_TARGET_TITLE) {
       filterRules.push({ rule_type: FILTER_TITLE, value: this._textFilter })
     }

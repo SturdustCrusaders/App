@@ -116,3 +116,4 @@ celerybeat-schedule*
 /paperless-ngx/docker-compose.env
 
 .env
+package-lock.json

@@ -66,6 +66,8 @@ export const FILTER_CUSTOM_FIELDS_QUERY = 42
 
 export const FILTER_MIME_TYPE = 47
 
+export const FILTER_TEMPLATE_FIELDS = 48
+
 export const FILTER_RULE_TYPES: FilterRuleType[] = [
   {
     id: FILTER_TITLE,
@@ -363,6 +365,13 @@ export const FILTER_RULE_TYPES: FilterRuleType[] = [
     filtervar: 'mime_type',
     datatype: 'string',
     multi: false,
+  },
+  {
+    id: FILTER_TEMPLATE_FIELDS,
+    filtervar: 'field_values__value__icontains',
+    datatype: 'string',
+    multi: false,
+    default: '',
   },
 ]
 

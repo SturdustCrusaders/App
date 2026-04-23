@@ -2831,3 +2831,29 @@ class StoragePathTestSerializer(SerializerWithPerms):
                 "documents.view_document",
                 Document,
             )
+
+from documents.models import DocumentFieldValue, DocumentTypeTemplateField
+
+class TemplateFieldSerializer(serializers.ModelSerializer):
+    name = serializers.CharField(source="template.name")
+    template_name = serializers.CharField(source="template.document_type.name")
+    field = serializers.CharField(source="name")
+    regions = serializers.JSONField()
+    value = serializers.SerializerMethodField()
+
+    class Meta:
+        model = DocumentTypeTemplateField
+        fields = ["name", "template_name", "field", "regions", "value"]
+
+    def get_value(self, obj):
+        document_id = self.context["request"].query_params.get("document_id")
+
+        if not document_id:
+            return None
+
+        return (
+            DocumentFieldValue.objects
+            .filter(template_field_id=obj.id, document_id=document_id)
+            .values_list("value", flat=True)
+            .first()
+        )
