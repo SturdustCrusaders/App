@@ -14,10 +14,4 @@ export class DocumentTemplateService {
       `/api/document-types/${documentTypeId}/template-fields/?document_id=${documentId}`
     );
   }
-
-  searchDocumentsByTemplateFieldValue(query: string): Observable<any> {
-    return this.http.get<any>(
-      `/api/documents/?field_values__value__icontains=${encodeURIComponent(query)}`
-    );
-  }
 }
