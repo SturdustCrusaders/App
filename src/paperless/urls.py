@@ -43,7 +43,7 @@ from documents.views import WorkflowActionViewSet
 from documents.views import WorkflowTriggerViewSet
 from documents.views import WorkflowViewSet
 from documents.views import serve_logo
-from documents.views import DocumentTypeTemplateFieldsView, DocumentSearchByTemplateFieldView
+from documents.views import DocumentTypeTemplateFieldsView
 from paperless.consumers import StatusConsumer
 from paperless.views import ApplicationConfigurationViewSet
 from paperless.views import DisconnectSocialAccountView
@@ -98,10 +98,6 @@ urlpatterns = [
                     r"^document-types/(?P<document_type_id>\d+)/template-fields/$",
                     DocumentTypeTemplateFieldsView.as_view(),
                     name="document_type_template_fields",
-                ),
-                path(
-                        "documents/search-by-template-field/",
-                        DocumentSearchByTemplateFieldView.as_view(),
                 ),
                 re_path(
                     "^search/",

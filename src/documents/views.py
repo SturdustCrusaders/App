@@ -37,6 +37,7 @@ from django.db.models import When
 from django.db.models.functions import Length
 from django.db.models.functions import Lower
 from django.db.models.manager import Manager
+from django.db.models import Q
 from django.http import FileResponse
 from django.http import Http404
 from django.http import HttpResponse
@@ -1345,6 +1346,7 @@ class DocumentViewSet(
         },
     ),
 )
+
 class UnifiedSearchViewSet(DocumentViewSet):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -1364,6 +1366,15 @@ class UnifiedSearchViewSet(DocumentViewSet):
 
     def filter_queryset(self, queryset):
         filtered_queryset = super().filter_queryset(queryset)
+
+        query = self.request.query_params.get("field_values__value__icontains")
+
+        if query:
+            filtered_queryset = filtered_queryset.filter(
+                Q(title__icontains=query) |
+                Q(field_values__value__icontains=query) |
+                Q(field_values__template_field__name__icontains=query)
+            ).distinct()
 
         if self._is_search_request():
             from documents import index
@@ -3232,21 +3243,3 @@ class DocumentTypeTemplateFieldsView(ListModelMixin, GenericAPIView):
 
     def get(self, request, *args, **kwargs):
         return self.list(request, *args, **kwargs)
-
-from django.db.models import Q
-from documents.models import Document, DocumentFieldValue
-from documents.serialisers import DocumentSerializer
-from rest_framework.generics import ListAPIView
-
-class DocumentSearchByTemplateFieldView(ListAPIView):
-    permission_classes = (IsAuthenticated,)
-    serializer_class = DocumentSerializer
-
-    def get_queryset(self):
-        query = self.request.query_params.get("q", "")
-
-        return Document.objects.filter(
-            Q(title__icontains=query) |
-            Q(field_values__value__icontains=query) |
-            Q(field_values__template_field__name__icontains=query)
-        ).distinct()
