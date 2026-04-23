@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import { Component, Input, ChangeDetectionStrategy } from '@angular/core';
 
 export interface TemplateField {
   name: string;
@@ -17,12 +17,18 @@ export interface TemplateField {
 @Component({
   selector: 'pngx-document-template-fields',
   templateUrl: './document-data-template-fields.component.html',
-  styleUrls: ['./document-data-template-fields.component.scss']
+  styleUrls: ['./document-data-template-fields.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: true
 })
 export class DocumentTemplateFieldsComponent {
   @Input() templateFields: TemplateField[] = [];
   
   getRegionDisplay(region: any): string {
     return `Page ${region.page}: (${region.x0}, ${region.y0}) to (${region.x1}, ${region.y1})`;
+  }
+
+  isFieldEmpty(value: string): boolean {
+    return !value || value.trim() === '';
   }
 }

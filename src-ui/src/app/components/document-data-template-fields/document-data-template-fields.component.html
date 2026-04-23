@@ -1,22 +1,26 @@
 <div class="template-fields-container">
-  <div *ngFor="let field of templateFields" class="field-item">
-
-    <div class="field-header">
-      <strong>{{ field.field }}:</strong>
-      <span class="field-value">
-        {{ field.value?.length ? field.value : '-' }}
-      </span>
-
-      <span class="template-badge">
-        {{ field.template_name }}
-      </span>
-    </div>
-
-    <div class="field-regions">
-      <div *ngFor="let region of field.regions" class="region-item">
-        {{ getRegionDisplay(region) }}
+  @if (templateFields && templateFields.length > 0) {
+    @for (field of templateFields; track field.field) {
+      <div class="field-item">
+        <div class="field-header">
+          <strong>{{ field.field }}:</strong>
+          <span class="field-value" [class.empty]="isFieldEmpty(field.value)">
+            <pre>{{ field.value?.trim() || '- Nu a fost completat -' }}</pre>
+          </span>
+          <span class="template-badge">
+            {{ field.template_name }}
+          </span>
+        </div>
+        <div class="field-regions">
+          @for (region of field.regions; track region) {
+            <div class="region-item">
+              {{ getRegionDisplay(region) }}
+            </div>
+          }
+        </div>
       </div>
-    </div>
-
-  </div>
+    }
+  } @else {
+    <div class="text-muted">No template fields available</div>
+  }
 </div>

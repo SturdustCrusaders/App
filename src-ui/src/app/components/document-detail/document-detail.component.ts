@@ -117,11 +117,11 @@ enum DocumentDetailNavIDs {
   Details = 1,
   Content = 2,
   Metadata = 3,
-  TemplateFields =4,
-  Preview = 5,
+  Preview = 4,
+  TemplateFields =5,
   Notes = 6,
-  // Permissions = 6,
-  // History = 7,
+  Permissions = 7,
+  History = 8,
 }
 
 enum ContentRenderType {
@@ -1206,29 +1206,33 @@ export class DocumentDetailComponent
   }
 
   loadTemplateFields(documentTypeId: number): void {
-  if (
-    this.permissionsService.currentUserCan(
-      PermissionAction.View,
-      PermissionType.DocumentType
-    ) && documentTypeId
-  ) {
-    this.templateService
-      .getTemplateFieldsByDocumentType(documentTypeId, this.documentId)
-      .pipe(first(), takeUntil(this.unsubscribeNotifier))
-      .subscribe({
-        next: (fields) => {
-          this.templateFields = [...fields];
-          console.log('Loaded template fields:', this.templateFields); 
-        },
-        error: (err) => console.error(err)
-      });
+    if (
+      this.permissionsService.currentUserCan(
+        PermissionAction.View,
+        PermissionType.DocumentType
+      ) && documentTypeId
+    ) {
+      this.templateService
+        .getTemplateFieldsByDocumentType(documentTypeId, this.documentId)
+        .pipe(first(), takeUntil(this.unsubscribeNotifier))
+        .subscribe({
+          next: (fields) => {
+            this.templateFields = [...fields];
+            console.log('Loaded template fields:', this.templateFields); 
+          },
+          error: (err) => console.error(err)
+        });
+    }
   }
-}
 
 
-get showTemplateFields(): boolean {
-  return this.templateFields && this.templateFields.length > 0;
-}
+  get showTemplateFields(): boolean {
+    return this.templateFields && this.templateFields.length > 0;
+  }
+
+  ngOnChanges() {
+    console.log('child input', this.templateFields);
+  }
 
   get showPermissions(): boolean {
     return (
