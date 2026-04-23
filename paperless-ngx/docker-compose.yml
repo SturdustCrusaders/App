@@ -73,8 +73,10 @@ services:
       - ../src/documents/migrations/1078_default_groups.py:/usr/src/paperless/src/documents/migrations/1078_default_groups.py
       - ../src/documents/migrations/1079_documenttypetemplate_blank_document.py:/usr/src/paperless/src/documents/migrations/1079_documenttypetemplate_blank_document.py
 
-      # - ../src-ui/dist/paperless-ui/ro-Ro:/usr/src/paperless/static/frontend/ro-RO
-      - ../src/documents/static/frontend/ro-RO:/usr/src/paperless/static/frontend/en-US
+      #DADO
+      - ../src-ui/dist/paperless-ui/ro-Ro:/usr/src/paperless/static/frontend/ro-RO
+      #PETRU
+      # - ../src/documents/static/frontend/ro-RO:/usr/src/paperless/static/frontend/en-US
     env_file: docker-compose.env
     environment:
       PAPERLESS_REDIS: redis://broker:6379

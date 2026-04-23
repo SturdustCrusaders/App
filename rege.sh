@@ -19,3 +19,5 @@ pnpm run build --configuration production
 # Restart the docker
 cd ../paperless-ngx/
 docker compose up -d
+
+docker logs -f paperless-ngx-webserver-1
