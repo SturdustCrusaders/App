@@ -3232,3 +3232,21 @@ class DocumentTypeTemplateFieldsView(ListModelMixin, GenericAPIView):
 
     def get(self, request, *args, **kwargs):
         return self.list(request, *args, **kwargs)
+
+from django.db.models import Q
+from documents.models import Document, DocumentFieldValue
+from documents.serialisers import DocumentSerializer
+from rest_framework.generics import ListAPIView
+
+class DocumentSearchByTemplateFieldView(ListAPIView):
+    permission_classes = (IsAuthenticated,)
+    serializer_class = DocumentSerializer
+
+    def get_queryset(self):
+        query = self.request.query_params.get("q", "")
+
+        return Document.objects.filter(
+            Q(title__icontains=query) |
+            Q(field_values__value__icontains=query) |
+            Q(field_values__template_field__name__icontains=query)
+        ).distinct()
