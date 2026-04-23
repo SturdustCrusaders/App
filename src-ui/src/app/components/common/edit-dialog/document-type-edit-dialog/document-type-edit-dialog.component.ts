@@ -45,6 +45,7 @@ type TemplateJson = {
 
 type DrawBox = {
   name: string
+  page: number
   x0: number
   y0: number
   x1: number
@@ -70,8 +71,14 @@ export class DocumentTypeEditDialogComponent extends EditDialogComponent<Documen
 
   @ViewChild('bboxStage') bboxStage?: ElementRef<HTMLDivElement>
 
-  templateImageSrc: string | null = null
+  stageImageSrc: string | null = null
   drawBoxes: DrawBox[] = []
+
+  sourceFileName: string | null = null
+  sourceType: 'image' | 'pdf' | null = null
+  pdfPageCount = 0
+  pdfCurrentPage = 1
+  private pdfDocument: any = null
 
   isDrawing = false
   drawStartX = 0
@@ -182,19 +189,48 @@ export class DocumentTypeEditDialogComponent extends EditDialogComponent<Documen
       return
     }
 
+    this.error = null
+    this.sourceFileName = file.name
+
+    if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+      this.loadPdfFile(file)
+      return
+    }
+
     if (!file.type.startsWith('image/')) {
       this.error = {
         ...this.error,
-        template_json: 'Uploadeaza o imagine valida (png, jpg, webp etc.).',
+        template_json: 'Uploadeaza un fisier valid: imagine (png, jpg, webp) sau PDF.',
       }
       return
     }
 
+    this.sourceType = 'image'
+    this.pdfDocument = null
+    this.pdfPageCount = 0
+    this.pdfCurrentPage = 1
+
     const reader = new FileReader()
     reader.onload = () => {
-      this.templateImageSrc = typeof reader.result === 'string' ? reader.result : null
+      this.stageImageSrc = typeof reader.result === 'string' ? reader.result : null
     }
     reader.readAsDataURL(file)
+  }
+
+  async goToPreviousPdfPage() {
+    if (!this.pdfDocument || this.pdfCurrentPage <= 1) {
+      return
+    }
+    this.pdfCurrentPage -= 1
+    await this.renderCurrentPdfPage()
+  }
+
+  async goToNextPdfPage() {
+    if (!this.pdfDocument || this.pdfCurrentPage >= this.pdfPageCount) {
+      return
+    }
+    this.pdfCurrentPage += 1
+    await this.renderCurrentPdfPage()
   }
 
   onStageMouseDown(event: MouseEvent) {
@@ -252,6 +288,7 @@ export class DocumentTypeEditDialogComponent extends EditDialogComponent<Documen
 
     this.drawBoxes.push({
       name: `field_${this.drawBoxes.length + 1}`,
+      page: this.pdfDocument ? this.pdfCurrentPage : 1,
       x0: this.roundCoord(minX / w),
       y0: this.roundCoord(minY / h),
       x1: this.roundCoord(maxX / w),
@@ -266,7 +303,17 @@ export class DocumentTypeEditDialogComponent extends EditDialogComponent<Documen
   }
 
   removeBox(index: number) {
-    this.drawBoxes.splice(index, 1)
+    const currentBoxes = this.getDrawBoxesForCurrentPage()
+    const target = currentBoxes[index]
+    if (!target) {
+      return
+    }
+
+    const absoluteIndex = this.drawBoxes.indexOf(target)
+    if (absoluteIndex >= 0) {
+      this.drawBoxes.splice(absoluteIndex, 1)
+    }
+
     this.syncTemplateJsonFromBoxes()
   }
 
@@ -285,6 +332,11 @@ export class DocumentTypeEditDialogComponent extends EditDialogComponent<Documen
     const width = Math.max((box.x1 - box.x0) * 100, 0)
     const height = Math.max((box.y1 - box.y0) * 100, 0)
     return `left:${left}%;top:${top}%;width:${width}%;height:${height}%;`
+  }
+
+  getDrawBoxesForCurrentPage(): DrawBox[] {
+    const page = this.pdfDocument ? this.pdfCurrentPage : 1
+    return this.drawBoxes.filter((box) => box.page === page)
   }
 
   getCurrentDrawStyle(): string {
@@ -317,6 +369,7 @@ export class DocumentTypeEditDialogComponent extends EditDialogComponent<Documen
 
         return {
           name: field.name,
+          page: Math.max(1, Number(region.page ?? 1) || 1),
           x0: this.clamp(region.x0, 0, 1),
           y0: this.clamp(region.y0, 0, 1),
           x1: this.clamp(region.x1, 0, 1),
@@ -336,19 +389,25 @@ export class DocumentTypeEditDialogComponent extends EditDialogComponent<Documen
       }
     }
 
+    const groupedByField = new Map<string, TemplateRegion[]>()
+    for (const box of this.drawBoxes) {
+      const fieldName = box.name?.trim() || 'field'
+      const existing = groupedByField.get(fieldName) ?? []
+      existing.push({
+        page: Math.max(1, Number(box.page) || 1),
+        x0: this.roundCoord(box.x0),
+        y0: this.roundCoord(box.y0),
+        x1: this.roundCoord(box.x1),
+        y1: this.roundCoord(box.y1),
+      })
+      groupedByField.set(fieldName, existing)
+    }
+
     const nextTemplate: TemplateJson = {
       ...this.currentTemplateJson,
-      fields: this.drawBoxes.map((box) => ({
-        name: box.name?.trim() || 'field',
-        regions: [
-          {
-            page: 1,
-            x0: this.roundCoord(box.x0),
-            y0: this.roundCoord(box.y0),
-            x1: this.roundCoord(box.x1),
-            y1: this.roundCoord(box.y1),
-          },
-        ],
+      fields: Array.from(groupedByField.entries()).map(([name, regions]) => ({
+        name,
+        regions,
       })),
     }
 
@@ -367,5 +426,61 @@ export class DocumentTypeEditDialogComponent extends EditDialogComponent<Documen
 
   private roundCoord(value: number): number {
     return Math.round(value * 10000) / 10000
+  }
+
+  private async loadPdfFile(file: File) {
+    try {
+      this.sourceType = 'pdf'
+      this.stageImageSrc = null
+
+      const data = await file.arrayBuffer()
+      const pdfjsLib: any = await import('pdfjs-dist')
+      pdfjsLib.GlobalWorkerOptions.workerSrc =
+        (window as any).pdfWorkerSrc ?? 'assets/js/pdf.worker.min.mjs'
+
+      const loadingTask = pdfjsLib.getDocument({ data })
+      this.pdfDocument = await loadingTask.promise
+      this.pdfPageCount = this.pdfDocument.numPages
+      this.pdfCurrentPage = 1
+      await this.renderCurrentPdfPage()
+    } catch (err) {
+      this.pdfDocument = null
+      this.pdfPageCount = 0
+      this.pdfCurrentPage = 1
+      this.stageImageSrc = null
+      this.error = {
+        ...this.error,
+        template_json: 'Nu am putut incarca PDF-ul pentru randare.',
+      }
+    }
+  }
+
+  private async renderCurrentPdfPage() {
+    if (!this.pdfDocument) {
+      return
+    }
+
+    const page = await this.pdfDocument.getPage(this.pdfCurrentPage)
+    const viewport = page.getViewport({ scale: 1.5 })
+
+    const canvas = document.createElement('canvas')
+    const context = canvas.getContext('2d')
+    if (!context) {
+      this.error = {
+        ...this.error,
+        template_json: 'Nu am putut initializa canvas-ul pentru PDF.',
+      }
+      return
+    }
+
+    canvas.width = Math.ceil(viewport.width)
+    canvas.height = Math.ceil(viewport.height)
+
+    await page.render({
+      canvasContext: context,
+      viewport,
+    }).promise
+
+    this.stageImageSrc = canvas.toDataURL('image/png')
   }
 }

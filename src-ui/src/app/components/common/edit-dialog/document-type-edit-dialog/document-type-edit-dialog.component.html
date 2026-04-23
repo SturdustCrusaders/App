@@ -30,18 +30,33 @@
         }
 
         <div class="bbox-builder mt-3">
-          <label class="form-label" i18n>Build visually from image</label>
+          <label class="form-label" i18n>Build visually from image or PDF</label>
           <input
             type="file"
             class="form-control"
-            accept="image/*"
+            accept="image/*,application/pdf"
             (change)="onTemplateImageSelected($event)"
           />
+          @if (sourceFileName) {
+            <p class="small text-muted mt-1 mb-2">{{ sourceFileName }}</p>
+          }
 
-          @if (templateImageSrc) {
+          @if (stageImageSrc) {
             <p class="small text-muted mt-2 mb-2" i18n>
-              Drag on image to create a bounding box. Coordinates are stored normalized (0..1) on page 1.
+              Drag on preview to create a bounding box. Coordinates are stored normalized (0..1).
             </p>
+
+            @if (sourceType === 'pdf') {
+              <div class="d-flex align-items-center gap-2 mb-2">
+                <button type="button" class="btn btn-sm btn-outline-secondary" (click)="goToPreviousPdfPage()" [disabled]="pdfCurrentPage <= 1" i18n>
+                  Prev page
+                </button>
+                <span class="small text-muted">Page {{ pdfCurrentPage }} / {{ pdfPageCount }}</span>
+                <button type="button" class="btn btn-sm btn-outline-secondary" (click)="goToNextPdfPage()" [disabled]="pdfCurrentPage >= pdfPageCount" i18n>
+                  Next page
+                </button>
+              </div>
+            }
 
             <div
               class="bbox-stage"
@@ -51,9 +66,9 @@
               (mouseup)="onStageMouseUp()"
               (mouseleave)="cancelDrawing()"
             >
-              <img [src]="templateImageSrc" alt="Template preview" draggable="false" />
+              <img [src]="stageImageSrc" alt="Template preview" draggable="false" />
 
-              @for (box of drawBoxes; track $index) {
+              @for (box of getDrawBoxesForCurrentPage(); track $index) {
                 <div class="bbox-box" [style]="getBoxStyle(box)">
                   <span>{{ box.name }}</span>
                 </div>
@@ -72,7 +87,7 @@
 
             @if (drawBoxes.length > 0) {
               <div class="bbox-fields mt-3">
-                @for (box of drawBoxes; track $index) {
+                @for (box of getDrawBoxesForCurrentPage(); track $index) {
                   <div class="bbox-field-row">
                     <input
                       type="text"
@@ -82,6 +97,9 @@
                       (ngModelChange)="onFieldNameChanged()"
                       placeholder="field_name"
                     />
+                        @if (sourceType === 'pdf') {
+                          <span class="badge text-bg-light border">p. {{ box.page }}</span>
+                        }
                     <button
                       type="button"
                       class="btn btn-sm btn-outline-danger"

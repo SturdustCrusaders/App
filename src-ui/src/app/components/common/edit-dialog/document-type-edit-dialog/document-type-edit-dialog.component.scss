@@ -50,8 +50,12 @@
 }
 
 .bbox-field-row {
-	display: grid;
-	grid-template-columns: 1fr auto;
+	display: flex;
+	flex-wrap: wrap;
 	gap: 0.5rem;
 	align-items: center;
+}
+
+.bbox-field-row input {
+	flex: 1 1 18rem;
 }
