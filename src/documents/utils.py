@@ -1,5 +1,7 @@
 import logging
+import re
 import shutil
+from collections import Counter
 from os import utime
 from pathlib import Path
 from subprocess import CompletedProcess
@@ -7,6 +9,16 @@ from subprocess import run
 
 from django.conf import settings
 from PIL import Image
+
+if getattr(settings, 'NLTK_ENABLED', False):
+    try:
+        from nltk.corpus import stopwords
+
+        NLTK_AVAILABLE = True
+    except ImportError:
+        NLTK_AVAILABLE = False
+else:
+    NLTK_AVAILABLE = False
 
 
 def _coerce_to_path(
@@ -128,3 +140,35 @@ def get_boolean(boolstr: str) -> bool:
     Return a boolean value from a string representation.
     """
     return bool(boolstr.lower() in ("yes", "y", "1", "t", "true"))
+
+
+def suggest_title_from_content(content: str, lang: str = "english") -> str | None:
+    """
+    Suggests a title from the document content by extracting the most
+    frequent keywords.
+    """
+    if not content:
+        return None
+
+    # Take the first part of the content to speed up processing and get more relevant words
+    words = re.findall(r"\b\w{4,}\b", content.lower())[:1000]
+
+    if NLTK_AVAILABLE:
+        try:
+            # TODO: This should respect PAPERLESS_OCR_LANGUAGE
+            stop_words = set(stopwords.words(lang))
+            words = [w for w in words if w not in stop_words and not w.isdigit()]
+        except Exception:
+            # Fallback if stopwords for the language are not available
+            pass
+
+    if not words:
+        return None
+
+    # Get the 5 most common words
+    most_common = [word for word, count in Counter(words).most_common(5)]
+
+    if not most_common:
+        return None
+
+    return " ".join(most_common).capitalize()

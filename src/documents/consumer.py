@@ -13,7 +13,6 @@ from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
 from filelock import FileLock
-from rest_framework.reverse import reverse
 
 from documents.classifier import load_classifier
 from documents.data_models import ConsumableDocument
@@ -43,13 +42,13 @@ from documents.plugins.helpers import ProgressManager
 from documents.plugins.helpers import ProgressStatusOptions
 from documents.signals import document_consumption_finished
 from documents.signals import document_consumption_started
-from documents.signals.handlers import run_workflows
 from documents.templating.workflows import parse_w_workflow_placeholders
 from documents.utils import copy_basic_file_stats
 from documents.utils import copy_file_with_basic_stats
 from documents.utils import run_subprocess
 from paperless_mail.parsers import MailDocumentParser
 
+from documents.utils import suggest_title_from_content
 
 class WorkflowTriggerPlugin(
     NoCleanupPluginMixin,
@@ -63,6 +62,8 @@ class WorkflowTriggerPlugin(
         """
         Get overrides from matching workflows
         """
+        from documents.signals.handlers import run_workflows
+
         overrides, msg = run_workflows(
             trigger_type=WorkflowTrigger.WorkflowTriggerType.CONSUMPTION,
             document=self.input_doc,
@@ -207,6 +208,8 @@ class ConsumerPlugin(
         If one is configured and exists, run the pre-consume script and
         handle its output and/or errors
         """
+        from rest_framework.reverse import reverse
+
         if not settings.POST_CONSUME_SCRIPT:
             return
 
@@ -633,7 +636,7 @@ class ConsumerPlugin(
         page_count: int | None,
         mime_type: str,
     ) -> Document:
-        # If someone gave us the original filename, use it instead of doc.
+       
 
         self.log.debug("Saving record to database")
 
@@ -654,11 +657,6 @@ class ConsumerPlugin(
 
         storage_type = Document.STORAGE_TYPE_UNENCRYPTED
 
-        if self.metadata.filename:
-            title = Path(self.metadata.filename).stem
-        else:
-            title = self.input_doc.original_file.stem
-
         if self.metadata.title is not None:
             try:
                 title = self._parse_title_placeholders(self.metadata.title)
@@ -666,6 +664,19 @@ class ConsumerPlugin(
                 self.log.error(
                     f"Error occurred parsing title override '{self.metadata.title}', falling back to original. Exception: {e}",
                 )
+                title = Path(
+                    self.metadata.filename or self.input_doc.original_file.name,
+                ).stem
+        else:
+            # No title override, try to suggest one from content
+            suggested_title = suggest_title_from_content(text)
+            if suggested_title:
+                title = suggested_title
+                self.log.debug(f"Suggested title from content: '{title}'")
+            else:
+                # Fallback to original filename
+                title = Path(self.metadata.filename or self.input_doc.original_file.name).stem
+                self.log.debug(f"Using filename as title: '{title}'")
 
         file_for_checksum = (
             self.unmodified_original
