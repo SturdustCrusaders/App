@@ -1,0 +1,61 @@
+.bbox-template-editor textarea {
+	font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+}
+
+.bbox-stage {
+	position: relative;
+	display: inline-block;
+	width: 100%;
+	border: 1px solid var(--bs-border-color);
+	border-radius: 0.375rem;
+	overflow: hidden;
+	background: #f8f9fa;
+	cursor: crosshair;
+}
+
+.bbox-stage img {
+	width: 100%;
+	height: auto;
+	display: block;
+	user-select: none;
+	pointer-events: none;
+}
+
+.bbox-box {
+	position: absolute;
+	border: 2px solid #ff7a00;
+	background: rgba(255, 122, 0, 0.16);
+	box-sizing: border-box;
+	overflow: hidden;
+}
+
+.bbox-box span {
+	position: absolute;
+	left: 0;
+	top: 0;
+	font-size: 0.75rem;
+	color: #111;
+	background: rgba(255, 255, 255, 0.9);
+	padding: 0 0.25rem;
+	white-space: nowrap;
+}
+
+.bbox-box.drawing {
+	border-style: dashed;
+}
+
+.bbox-fields {
+	display: grid;
+	gap: 0.5rem;
+}
+
+.bbox-field-row {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+	align-items: center;
+}
+
+.bbox-field-row input {
+	flex: 1 1 18rem;
+}
