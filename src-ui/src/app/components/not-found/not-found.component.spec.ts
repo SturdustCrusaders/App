@@ -5,7 +5,6 @@ import { By } from '@angular/platform-browser'
 import { RouterModule } from '@angular/router'
 import { NgxBootstrapIconsModule, allIcons } from 'ngx-bootstrap-icons'
 import { routes } from 'src/app/app-routing.module'
-import { LogoComponent } from '../common/logo/logo.component'
 import { NotFoundComponent } from './not-found.component'
 
 describe('NotFoundComponent', () => {
@@ -17,7 +16,6 @@ describe('NotFoundComponent', () => {
       imports: [
         NgxBootstrapIconsModule.pick(allIcons),
         NotFoundComponent,
-        LogoComponent,
         RouterModule.forRoot(routes),
       ],
       providers: [
