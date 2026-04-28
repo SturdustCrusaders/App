@@ -79,6 +79,14 @@ def process_document_template(sender, document: Document, **kwargs) -> bool:
             f"{len(all_matched_word_ids)} words kept, {deleted_count} words deleted"
         )
 
+        # Actualizează titlul documentului acum că field-urile și ID-ul sunt disponibile
+        from documents.utils import suggest_title_from_content
+        new_title = suggest_title_from_content(document.content, document=document)
+        if new_title and document.title != new_title:
+            document.title = new_title[:127]
+            document.save(update_fields=["title"])
+            logger.info(f"Updated document {document.id} title to: '{new_title}'")
+
     return True
 
 

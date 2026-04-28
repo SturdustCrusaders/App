@@ -142,7 +142,7 @@ def get_boolean(boolstr: str) -> bool:
     return bool(boolstr.lower() in ("yes", "y", "1", "t", "true"))
 
 
-def suggest_title_from_content(content: str, lang: str = "english") -> str | None:
+def suggest_title_from_content(content: str, lang: str = "english", document=None) -> str | None:
     """
     Suggests a title from the document content by extracting the most
     frequent keywords.
@@ -165,10 +165,30 @@ def suggest_title_from_content(content: str, lang: str = "english") -> str | Non
     if not words:
         return None
 
-    # Get the 5 most common words
-    most_common = [word for word, count in Counter(words).most_common(5)]
+    # Get the most common word
+    most_common = [word for word, count in Counter(words).most_common(1)]
 
     if not most_common:
         return None
 
-    return " ".join(most_common).capitalize()
+    most_significant_word = most_common[0].capitalize()
+    title_parts = [most_significant_word]
+
+    if document:
+        field_value = None
+        if hasattr(document, "field_values"):
+            for fv in document.field_values.all():
+                if fv.value:
+                    field_value = fv.value
+                    # Ne oprim dacă găsim un field specific (ex: 'nume')
+                    if "nume" in fv.template_field.name.lower():
+                        break
+
+        if field_value:
+            # Eliminăm spațiile pentru formatul cerut
+            title_parts.append(field_value.replace(" ", ""))
+
+        if document.id:
+            title_parts.append(str(document.id))
+
+    return "_".join(title_parts)
