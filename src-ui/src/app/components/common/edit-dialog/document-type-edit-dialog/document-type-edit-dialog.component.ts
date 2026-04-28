@@ -142,13 +142,24 @@ export class DocumentTypeEditDialogComponent extends EditDialogComponent<Documen
     this.error = null
     const formValues = this.getFormValues()
     // Validare și parsare template_json
-    if (formValues.template_json) {
+    const templateControlValue = this.objectForm.get('template_json')?.value
+    if (templateControlValue && typeof templateControlValue === 'string' && templateControlValue.trim().length > 0) {
       try {
-        formValues.template_json = JSON.parse(formValues.template_json)
+        const parsed = JSON.parse(templateControlValue)
+        // Only include template_json in the payload if it was actually changed
+        if (JSON.stringify(parsed) !== JSON.stringify(this.currentTemplateJson)) {
+          formValues.template_json = parsed
+        } else {
+          // remove unchanged template to avoid accidental template replacement on server
+          delete formValues.template_json
+        }
       } catch (e) {
         this.error = { template_json: 'JSON invalid în Template JSON (Bounding Boxes)' }
         return
       }
+    } else {
+      // ensure we don't send empty/blank template to server
+      delete formValues.template_json
     }
     const permissionsObject = this.objectForm.get('permissions_form')?.value
     if (permissionsObject) {
