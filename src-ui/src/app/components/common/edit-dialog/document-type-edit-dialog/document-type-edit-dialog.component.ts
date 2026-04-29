@@ -141,22 +141,39 @@ export class DocumentTypeEditDialogComponent extends EditDialogComponent<Documen
   override save() {
     this.error = null
     const formValues = this.getFormValues()
-    // Validare și parsare template_json
-    if (formValues.template_json) {
+    const templateJsonValue = formValues.template_json
+    let parsedTemplateJson: TemplateJson | null = null
+
+    if (typeof templateJsonValue === 'string' && templateJsonValue.trim().length > 0) {
       try {
-        formValues.template_json = JSON.parse(formValues.template_json)
+        parsedTemplateJson = JSON.parse(templateJsonValue) as TemplateJson
       } catch (e) {
         this.error = { template_json: 'JSON invalid în Template JSON (Bounding Boxes)' }
         return
       }
+    } else {
+      parsedTemplateJson = Object.keys(this.currentTemplateJson ?? {}).length
+        ? { ...this.currentTemplateJson }
+        : null
     }
+
+    if (parsedTemplateJson) {
+      parsedTemplateJson.match = formValues.match
+      parsedTemplateJson.matching_algorithm = formValues.matching_algorithm
+      parsedTemplateJson.is_insensitive = formValues.is_insensitive
+      formValues.template_json = parsedTemplateJson
+      this.currentTemplateJson = parsedTemplateJson
+    } else {
+      delete formValues.template_json
+    }
+
     const permissionsObject = this.objectForm.get('permissions_form')?.value
     if (permissionsObject) {
       formValues.owner = permissionsObject.owner
       formValues.set_permissions = permissionsObject.set_permissions
       delete formValues.permissions_form
     }
-    var newObject = Object.assign(Object.assign({}, this.object), formValues)
+    const newObject = Object.assign({ ...this.object }, formValues)
     var serverResponse
     switch (this.dialogMode) {
       case (window as any).EditDialogMode?.CREATE || 0:
