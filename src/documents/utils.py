@@ -1,5 +1,7 @@
 import logging
+import re
 import shutil
+from collections import Counter
 from os import utime
 from pathlib import Path
 from subprocess import CompletedProcess
@@ -7,6 +9,16 @@ from subprocess import run
 
 from django.conf import settings
 from PIL import Image
+
+if getattr(settings, 'NLTK_ENABLED', False):
+    try:
+        from nltk.corpus import stopwords
+
+        NLTK_AVAILABLE = True
+    except ImportError:
+        NLTK_AVAILABLE = False
+else:
+    NLTK_AVAILABLE = False
 
 
 def _coerce_to_path(
@@ -128,3 +140,77 @@ def get_boolean(boolstr: str) -> bool:
     Return a boolean value from a string representation.
     """
     return bool(boolstr.lower() in ("yes", "y", "1", "t", "true"))
+
+
+def suggest_title_from_content(content: str, lang: str = "english", document=None) -> str | None:
+    """
+    Suggests a title from the document content by extracting the most
+    frequent keywords.
+    """
+    if not content:
+        return None
+
+    # Focus on the beginning of the document (first 2000 chars)
+    head_content = content[:2000]
+    
+    # Extract words preserving case for heuristics (ALL CAPS / Title Case)
+    raw_words = re.findall(r"\b\w{4,}\b", head_content)
+
+    stop_words = set()
+    if NLTK_AVAILABLE:
+        try:
+            # TODO: This should respect PAPERLESS_OCR_LANGUAGE
+            stop_words = set(stopwords.words(lang))
+        except Exception:
+            pass
+
+    valid_words = [w for w in raw_words if not w.isdigit() and w.lower() not in stop_words]
+
+    if not valid_words:
+        return None
+
+    # Heuristic: Find the most significant word from the top of the document.
+    # We look at the first 30 valid words and prioritize ALL CAPS, then Title Case.
+    most_significant_word = None
+    for w in valid_words[:30]:
+        if w.isupper() and w.isalpha():
+            most_significant_word = w
+            break
+
+    if not most_significant_word:
+        for w in valid_words[:30]:
+            if w.istitle() and w.isalpha():
+                most_significant_word = w
+                break
+
+    if not most_significant_word:
+        most_significant_word = valid_words[0]
+
+    most_significant_word = most_significant_word.capitalize()
+    title_parts = [most_significant_word]
+
+    if document:
+        field_value = None
+        if hasattr(document, "field_values"):
+            for fv in document.field_values.all():
+                if fv.value:
+                    field_value = fv.value
+                    # Ne oprim dacă găsim un field specific (ex: 'nume')
+                    if "nume" in fv.template_field.name.lower():
+                        break
+                    if "cnp" in fv.template_field.name.lower():
+                        break
+                    if "id" in fv.template_field.name.lower():
+                        break
+                    
+
+
+        if field_value:
+            # Eliminăm spațiile, punctele și alte caractere non-alfanumerice
+            title_parts.append(re.sub(r'[^\w]', '', field_value))
+
+        if document.id:
+            title_parts.append("id")
+            title_parts.append(str(document.id))
+
+    return "_".join(title_parts)

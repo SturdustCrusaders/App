@@ -60,6 +60,7 @@ services:
       - ../src/documents/template_processor.py:/usr/src/paperless/src/documents/template_processor.py
       - ../src/documents/apps.py:/usr/src/paperless/src/documents/apps.py
       - ../src/documents/consumer.py:/usr/src/paperless/src/documents/consumer.py
+      - ../src/documents/utils.py:/usr/src/paperless/src/documents/utils.py  # <-- LINIA NOUA ADAUGATA
       - ../src/documents/permissions.py:/usr/src/paperless/src/documents/permissions.py
       - ../src/documents/filters.py:/usr/src/paperless/src/documents/filters.py
       - ../src/documents/views.py:/usr/src/paperless/src/documents/views.py
@@ -68,15 +69,16 @@ services:
       - ../src/documents/signals/handlers.py:/usr/src/paperless/src/documents/signals/handlers.py
       - ../src/paperless/urls.py:/usr/src/paperless/src/paperless/urls.py
 
+
       - ../src/documents/migrations/1076_add_ai_word_extraction.py:/usr/src/paperless/src/documents/migrations/1076_add_ai_word_extraction.py
       - ../src/documents/migrations/1077_documenttypetemplate_and_fields.py:/usr/src/paperless/src/documents/migrations/1077_documenttypetemplate_and_fields.py
       - ../src/documents/migrations/1078_default_groups.py:/usr/src/paperless/src/documents/migrations/1078_default_groups.py
       - ../src/documents/migrations/1079_documenttypetemplate_blank_document.py:/usr/src/paperless/src/documents/migrations/1079_documenttypetemplate_blank_document.py
 
       #DADO
-      - ../src-ui/dist/paperless-ui/ro-Ro:/usr/src/paperless/static/frontend/ro-RO
+      #- ../src-ui/dist/paperless-ui/ro-Ro:/usr/src/paperless/static/frontend/ro-RO
       #PETRU
-      # - ../src/documents/static/frontend/ro-RO:/usr/src/paperless/static/frontend/en-US
+      - ../src/documents/static/frontend/ro-RO:/usr/src/paperless/static/frontend/en-US
     env_file: docker-compose.env
     environment:
       PAPERLESS_REDIS: redis://broker:6379
