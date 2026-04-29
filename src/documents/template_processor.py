@@ -209,7 +209,7 @@ def _normalize_field_value(field_name: str, value: str) -> str:
     # Full names: try to extract a sequence of capitalized words.
     if "nume" in field_key or "prenume" in field_key:
         candidates = re.findall(
-            r"\b[A-ZĂÂÎȘȚ][A-Za-zĂÂÎȘȚăâîșț-]+(?:\s+[A-ZĂÂÎȘȚ][A-Za-zĂÂÎȘȚăâîșț-]+){1,4}\b",
+            r"\b[A-ZĂÂÎȘȚ][A-Za-zĂÂÎȘȚăâîșț-]+(?:[\s.]+[A-ZĂÂÎȘȚ][A-Za-zĂÂÎȘȚăâîșț-]+){1,4}\b",
             clean,
         )
         if candidates:
@@ -226,7 +226,7 @@ def _normalize_field_value(field_name: str, value: str) -> str:
 
             filtered = []
             for candidate in candidates:
-                parts = candidate.split()
+                parts = re.split(r'[\s.]+', candidate)
                 if any(part in stop_tokens for part in parts):
                     continue
                 filtered.append(candidate)

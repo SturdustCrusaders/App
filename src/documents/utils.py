@@ -150,28 +150,43 @@ def suggest_title_from_content(content: str, lang: str = "english", document=Non
     if not content:
         return None
 
-    # Take the first part of the content to speed up processing and get more relevant words
-    words = re.findall(r"\b\w{4,}\b", content.lower())[:1000]
+    # Focus on the beginning of the document (first 2000 chars)
+    head_content = content[:2000]
+    
+    # Extract words preserving case for heuristics (ALL CAPS / Title Case)
+    raw_words = re.findall(r"\b\w{4,}\b", head_content)
 
+    stop_words = set()
     if NLTK_AVAILABLE:
         try:
             # TODO: This should respect PAPERLESS_OCR_LANGUAGE
             stop_words = set(stopwords.words(lang))
-            words = [w for w in words if w not in stop_words and not w.isdigit()]
         except Exception:
-            # Fallback if stopwords for the language are not available
             pass
 
-    if not words:
+    valid_words = [w for w in raw_words if not w.isdigit() and w.lower() not in stop_words]
+
+    if not valid_words:
         return None
 
-    # Get the most common word
-    most_common = [word for word, count in Counter(words).most_common(1)]
+    # Heuristic: Find the most significant word from the top of the document.
+    # We look at the first 30 valid words and prioritize ALL CAPS, then Title Case.
+    most_significant_word = None
+    for w in valid_words[:30]:
+        if w.isupper() and w.isalpha():
+            most_significant_word = w
+            break
 
-    if not most_common:
-        return None
+    if not most_significant_word:
+        for w in valid_words[:30]:
+            if w.istitle() and w.isalpha():
+                most_significant_word = w
+                break
 
-    most_significant_word = most_common[0].capitalize()
+    if not most_significant_word:
+        most_significant_word = valid_words[0]
+
+    most_significant_word = most_significant_word.capitalize()
     title_parts = [most_significant_word]
 
     if document:
@@ -183,12 +198,19 @@ def suggest_title_from_content(content: str, lang: str = "english", document=Non
                     # Ne oprim dacă găsim un field specific (ex: 'nume')
                     if "nume" in fv.template_field.name.lower():
                         break
+                    if "cnp" in fv.template_field.name.lower():
+                        break
+                    if "id" in fv.template_field.name.lower():
+                        break
+                    
+
 
         if field_value:
-            # Eliminăm spațiile pentru formatul cerut
-            title_parts.append(field_value.replace(" ", ""))
+            # Eliminăm spațiile, punctele și alte caractere non-alfanumerice
+            title_parts.append(re.sub(r'[^\w]', '', field_value))
 
         if document.id:
+            title_parts.append("id")
             title_parts.append(str(document.id))
 
     return "_".join(title_parts)
